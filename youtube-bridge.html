@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>RezkaTV · YouTube HTTPS player</title>
+<style>
+html,body,#player{margin:0;padding:0;width:100%;height:100%;background:#06151c;color:#d8eee6;font-family:Arial,sans-serif;overflow:hidden}
+#notice{position:absolute;top:15px;left:18px;font-size:15px;z-index:1;pointer-events:none;color:#b5dbc9}
+#player iframe{width:100%;height:100%;border:0}
+</style>
+</head>
+<body>
+<div id="player"></div>
+<div id="notice" aria-live="polite">YouTube · официальный плеер</div>
+<script>
+(function(){
+  'use strict';
+  // Place this file on an HTTPS origin you control. It does not use the Data API key.
+  // YouTube sees the REAL HTTPS document origin as the HTTP Referer; never fabricate it.
+  var KIND='rezkatv-youtube-bridge-v1';
+  var args=new URLSearchParams(location.search);
+  var video=args.get('video')||'';
+  var session=args.get('session')||'';
+  var player=null;
+  var valid=/^[A-Za-z0-9_-]{11}$/.test(video) && /^[a-f0-9]{32}$/.test(session) && location.protocol==='https:';
+  function send(event,values){
+    if(window.parent===window){return;}
+    var msg={kind:KIND,event:event,session:session};
+    if(values){Object.keys(values).forEach(function(k){msg[k]=values[k];});}
+    // The installed Tizen app is file:// (opaque parent origin), so targetOrigin cannot
+    // be specified more narrowly; no credentials or private metadata are sent.
+    window.parent.postMessage(msg,'*');
+  }
+  function fail(message){document.getElementById('notice').textContent=message;send('failure',{message:message});}
+  function destroy(){
+    if(player){
+      try{player.stopVideo();}catch(ignore){}
+      try{player.destroy();}catch(ignore2){}
+      player=null;
+    }
+    document.getElementById('player').textContent='';
+  }
+  window.addEventListener('message',function(ev){
+    // Same browsing context parent, unique unguessable session: reject other windows.
+    if(ev.source!==window.parent || !ev.data || ev.data.kind!==KIND || ev.data.session!==session){return;}
+    if(ev.data.command==='destroy'){destroy();return;}
+    if(!player){return;}
+    try{
+      if(ev.data.command==='play'){player.playVideo();}
+      else if(ev.data.command==='pause'){player.pauseVideo();}
+    }catch(ignore){}
+  });
+  window.addEventListener('pagehide',destroy);
+  if(!valid){fail('Неверный видео-ID, токен сеанса или HTTPS');return;}
+  window.onYouTubeIframeAPIReady=function(){
+    try{
+      player=new YT.Player('player',{
+        width:'100%',height:'100%',videoId:video,
+        playerVars:{playsinline:1,controls:1,autoplay:1,rel:0,origin:location.origin},
+        events:{
+          onReady:function(ev){
+            document.getElementById('notice').textContent='';
+            send('ready');
+            try{ev.target.playVideo();}catch(ignore){}
+          },
+          onStateChange:function(ev){send('state',{state:ev.data});},
+          onError:function(ev){send('error',{code:ev.data});}
+        }
+      });
+    }catch(e){fail('Ошибка создания YouTube-плеера');}
+  };
+  var script=document.createElement('script');
+  script.async=true;script.src='https://www.youtube.com/iframe_api';
+  script.onerror=function(){fail('Не удалось загрузить YouTube IFrame API');};
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>

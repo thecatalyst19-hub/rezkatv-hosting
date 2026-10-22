@@ -1,0 +1,9 @@
+{
+  "id": "org.rezkatv.sample.streams",
+  "version": "1.0.0",
+  "name": "RezkaTV · Licensed Sample Provider",
+  "description": "For testing stream lookup with a short Creative Commons Big Buck Bunny clip. Not a movie library.",
+  "types": ["movie"],
+  "resources": [{"name":"stream","types":["movie"],"idPrefixes":["tt1254207"]}],
+  "catalogs": []
+}

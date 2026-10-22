@@ -1,0 +1,10 @@
+{
+  "streams": [
+    {
+      "name": "Demo MP4 · Big Buck Bunny excerpt",
+      "title": "Creative Commons sample, short clip (not full movie)",
+      "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "mime": "video/mp4"
+    }
+  ]
+}
